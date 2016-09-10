@@ -5,7 +5,7 @@ from errbot import BotPlugin, botcmd
 ALL_USERS = 'ALL_USERS'
 MEETING_THRESHOLD = 'MEETING_THRESHOLD'
 
-CONFIG_TEMPLATE = {ALL_USERS: ['alex'], MEETING_THRESHOLD: 1}
+CONFIG_TEMPLATE = {ALL_USERS: 'alex,johngilbert', MEETING_THRESHOLD: 1}
 
 # err persisted settings keys
 COMING = 'coming_users'
@@ -34,7 +34,7 @@ class AreWeMeeting(BotPlugin):
         """
         super().activate()
 
-        # init storage
+        # init persistent storage
         if COMING not in self:
             self[COMING] = []
         if NOT_COMING not in self:
@@ -51,12 +51,19 @@ class AreWeMeeting(BotPlugin):
         # reset store
         self._reset_store()
 
-        for user in self.config[ALL_USERS]:
+        for user in self.all_users:
             self.send(
                 self.build_identifier("@{}".format(user)),
                 "Would you come to a meeting on {}? Reply with `!yes` or `!no`.".format(self[TARGET_DATE])
             )
-        return "Members asked: {}".format(self.config[ALL_USERS])
+        return "Members asked: {}".format(self.all_users)
+
+    @property
+    def all_users(self):
+        if self.config and ALL_USERS in self.config:
+            return self.config[ALL_USERS].split(',')
+        else:
+            return []
 
     def _reset_store(self):
         self[COMING] = []
