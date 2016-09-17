@@ -5,12 +5,23 @@ from errbot import BotPlugin, botcmd
 ALL_USERS = 'ALL_USERS'
 MEETING_THRESHOLD = 'MEETING_THRESHOLD'
 
-CONFIG_TEMPLATE = {ALL_USERS: 'alex,johngilbert', MEETING_THRESHOLD: 1}
+CONFIG_TEMPLATE = {
+    ALL_USERS: ','.join([
+        'alex',
+        'johngilbert',
+        'wasabifan',
+        'robeat101',
+        'ronak.shah',
+        'tfrancisco',
+        'seth_nguyen',
+    ]),
+    MEETING_THRESHOLD: 2}
 
 # err persisted settings keys
 COMING = 'coming_users'
 NOT_COMING = 'not_coming_users'
 TARGET_DATE = 'target_date'
+INITIATOR = 'initiator'
 
 class AreWeMeeting(BotPlugin):
 
@@ -51,12 +62,29 @@ class AreWeMeeting(BotPlugin):
         # reset store
         self._reset_store()
 
+        # record who kicked off this ask
+        self[INITIATOR] = msg.frm.nick
+
         for user in self.all_users:
-            self.send(
-                self.build_identifier("@{}".format(user)),
+            self._ask_user_if_coming(user)
+        return "Members asked: {}".format(self.all_users)
+
+    @botcmd
+    def ask_missing_if_coming(self, msg, args):
+        missing = self.get_missing_rsvp_users()
+        for user in missing:
+            self._ask_user_if_coming(user)
+        return "Members asked: {}".format(self.all_users)
+
+
+    def _ask_user_if_coming(self, user):
+        self.send(
+                self._build_id(user),
                 "Would you come to a meeting on {}? Reply with `!yes` or `!no`.".format(self[TARGET_DATE])
             )
-        return "Members asked: {}".format(self.all_users)
+
+    def _build_id(self, user):
+        return self.build_identifier("@{}".format(user))
 
     @property
     def all_users(self):
@@ -64,6 +92,12 @@ class AreWeMeeting(BotPlugin):
             return self.config[ALL_USERS].split(',')
         else:
             return []
+
+    def get_missing_rsvp_users(self):
+        return [
+            user for user in self.all_users
+            if (user not in self[NOT_COMING]) and (user not in self[COMING])
+        ]
 
     def _reset_store(self):
         self[COMING] = []
@@ -79,14 +113,26 @@ class AreWeMeeting(BotPlugin):
     @botcmd
     def yes(self, msg, args):
         if msg.is_direct:
-            user = msg.frm.username
+            user = msg.frm.nick
+
+            self.send(
+                self._build_id(self[INITIATOR]),
+                "{} can make the meeting".format(user)
+            )
+
             self._add_to_list(user, COMING)
             return "Registered that you are coming, thank you."
 
     @botcmd
     def no(self, msg, args):
         if msg.is_direct:
-            user = msg.frm.username
+            user = msg.frm.nick
+
+            self.send(
+                self._build_id(self[INITIATOR]),
+                "{} cannot make the meeting".format(user)
+            )
+
             self._add_to_list(user, NOT_COMING)
             return "Registered that you cannot make it, thank you."
 
@@ -103,7 +149,16 @@ class AreWeMeeting(BotPlugin):
                 len(self[COMING])
             )
 
-    def callback_message(self, mess):
-        #import pdb; pdb.set_trace()
-        pass
+    @botcmd
+    def missing_rsvps(self, msg, args):
+        missing = self.get_missing_rsvp_users()
+        if missing:
+            return "Still waiting to hear from: {}".format(missing)
+        else:
+            return "Have heard back from everyone"
+
+    @botcmd
+    def debug_break(self, msg, args):
+        import pdb; pdb.set_trace()
+        return "Done debugging!"
 
