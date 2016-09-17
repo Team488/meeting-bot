@@ -110,31 +110,39 @@ class AreWeMeeting(BotPlugin):
         with self.mutable(list_key) as l:
             l.append(item)
 
+    def _remove_from_list(self, item, list_key):
+        """
+        helper util because errbot persistence is awkward
+        """
+        with self.mutable(list_key) as l:
+            if item in l:
+                l.remove(item)
+
     @botcmd
     def yes(self, msg, args):
-        if msg.is_direct:
-            user = msg.frm.nick
+        user = msg.frm.nick
 
-            self.send(
-                self._build_id(self[INITIATOR]),
-                "{} can make the meeting".format(user)
-            )
+        self.send(
+            self._build_id(self[INITIATOR]),
+            "{} can make the meeting".format(user)
+        )
 
-            self._add_to_list(user, COMING)
-            return "Registered that you are coming, thank you."
+        self._add_to_list(user, COMING)
+        self._remove_from_list(user, NOT_COMING)
+        return "Registered that you are coming, thank you."
 
     @botcmd
     def no(self, msg, args):
-        if msg.is_direct:
-            user = msg.frm.nick
+        user = msg.frm.nick
 
-            self.send(
-                self._build_id(self[INITIATOR]),
-                "{} cannot make the meeting".format(user)
-            )
+        self.send(
+            self._build_id(self[INITIATOR]),
+            "{} cannot make the meeting".format(user)
+        )
 
-            self._add_to_list(user, NOT_COMING)
-            return "Registered that you cannot make it, thank you."
+        self._add_to_list(user, NOT_COMING)
+        self._remove_from_list(user, COMING)
+        return "Registered that you cannot make it, thank you."
 
     @botcmd
     def make_call(self, msg, args):
