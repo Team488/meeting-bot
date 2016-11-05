@@ -144,6 +144,32 @@ class AreWeMeeting(BotPlugin):
         self._remove_from_list(user, COMING)
         return "Registered that you cannot make it, thank you."
 
+
+    @botcmd
+    def yes_for(self, msg, args):
+        user = args
+        self._add_to_list(user, COMING)
+        self._remove_from_list(user, NOT_COMING)
+        return "Registered that {} cannot make it, thank you.".format(user)
+
+    @botcmd
+    def no_for(self, msg, args):
+        user = args
+        self._add_to_list(user, NOT_COMING)
+        self._remove_from_list(user, COMING)
+        return "Registered that {} cannot make it, thank you.".format(user)
+
+    @botcmd
+    def meeting_status(self, msg, args):
+        output = "Proposed meeting on {}\n".format(self[TARGET_DATE])
+        if len(self[COMING]):
+            output += "* Can make it: {}\n".format(", ".join(self[COMING]))
+        missing = self.get_missing_rsvp_users()
+        if missing:
+            output += "* Waiting to hear from: {}".format(", ".join(missing))
+
+        return output
+        
     @botcmd
     def make_call(self, msg, args):
         if not self[TARGET_DATE]:

@@ -1,9 +1,9 @@
 [Core]
-Name = AreWeMeeting
+Name = XMeeting
 Module = are_we_meeting
 
 [Python]
 Version = 2+
 
 [Documentation]
-Description = WIP
+Description = A meeting helper bot
